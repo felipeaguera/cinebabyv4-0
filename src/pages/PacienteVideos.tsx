@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Trash2, QrCode, Printer, Play } from 'lucide-react';
@@ -46,25 +47,6 @@ const PacienteVideos = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [videoTitle, setVideoTitle] = useState('');
-
-  // Simular autenticação para que as políticas RLS funcionem
-  useEffect(() => {
-    const simulateAuth = async () => {
-      try {
-        // Criar uma sessão simulada para que as políticas RLS funcionem
-        const { data, error } = await supabase.auth.signInAnonymously();
-        if (error) {
-          console.log('Erro na autenticação anônima (pode ser ignorado):', error);
-        } else {
-          console.log('Sessão anônima criada:', data);
-        }
-      } catch (error) {
-        console.log('Autenticação anônima não disponível, continuando sem autenticação');
-      }
-    };
-
-    simulateAuth();
-  }, []);
 
   const fetchPacienteData = async () => {
     if (!pacienteId) return;
@@ -117,14 +99,6 @@ const PacienteVideos = () => {
 
       console.log('Nome do arquivo no storage:', fileName);
 
-      // Verificar se o bucket existe
-      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
-      console.log('Buckets disponíveis:', buckets);
-      
-      if (bucketsError) {
-        console.error('Erro ao listar buckets:', bucketsError);
-      }
-
       // Upload do arquivo para o Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
         .from('videos')
@@ -134,8 +108,8 @@ const PacienteVideos = () => {
         });
 
       if (uploadError) {
-        console.error('Erro no upload:', uploadError);
-        throw uploadError;
+        console.error('Erro detalhado no upload:', uploadError);
+        throw new Error(`Erro no upload: ${uploadError.message}`);
       }
 
       console.log('Upload realizado com sucesso:', uploadData);
@@ -145,7 +119,7 @@ const PacienteVideos = () => {
         .from('videos')
         .getPublicUrl(fileName);
 
-      console.log('URL pública:', publicUrl);
+      console.log('URL pública gerada:', publicUrl);
 
       // Salvar registro no banco
       const { data: videoData, error: dbError } = await supabase
@@ -161,10 +135,10 @@ const PacienteVideos = () => {
 
       if (dbError) {
         console.error('Erro ao salvar no banco:', dbError);
-        throw dbError;
+        throw new Error(`Erro ao salvar no banco: ${dbError.message}`);
       }
 
-      console.log('Vídeo salvo no banco:', videoData);
+      console.log('Vídeo salvo no banco com sucesso:', videoData);
 
       toast({
         title: "Sucesso!",
@@ -173,27 +147,36 @@ const PacienteVideos = () => {
 
       setUploadFile(null);
       setVideoTitle('');
+      
+      // Limpar o input de arquivo
+      const fileInput = document.getElementById('video') as HTMLInputElement;
+      if (fileInput) {
+        fileInput.value = '';
+      }
+      
       fetchPacienteData();
     } catch (error) {
-      console.error('Erro ao fazer upload:', error);
+      console.error('Erro completo no upload:', error);
       
       let errorMessage = "Erro ao enviar vídeo. Tente novamente.";
       
       if (error && typeof error === 'object' && 'message' in error) {
         const errorMsg = error.message as string;
-        if (errorMsg.includes('row-level security')) {
-          errorMessage = "Erro de permissão. Verifique se você está logado corretamente.";
-        } else if (errorMsg.includes('bucket')) {
-          errorMessage = "Erro no armazenamento. Contate o administrador.";
+        if (errorMsg.includes('bucket')) {
+          errorMessage = "Erro no armazenamento. Verifique se o bucket existe.";
         } else if (errorMsg.includes('File size')) {
           errorMessage = "Arquivo muito grande. Tente um arquivo menor.";
-        } else if (errorMsg.includes('not found')) {
-          errorMessage = "Bucket de vídeos não encontrado. Contate o administrador.";
+        } else if (errorMsg.includes('upload')) {
+          errorMessage = `Erro no upload: ${errorMsg}`;
+        } else if (errorMsg.includes('banco')) {
+          errorMessage = `Erro ao salvar: ${errorMsg}`;
+        } else {
+          errorMessage = errorMsg;
         }
       }
       
       toast({
-        title: "Erro",
+        title: "Erro no Upload",
         description: errorMessage,
         variant: "destructive",
       });
