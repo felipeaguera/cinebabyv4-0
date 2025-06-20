@@ -246,8 +246,10 @@ const PacienteVideos = () => {
     if (isAdmin || isRealAdmin) {
       // Se é admin, volta para a página de pacientes da clínica específica
       if (paciente?.clinica_id) {
+        console.log('Admin navegando de volta para clínica:', paciente.clinica_id);
         navigate(`/admin/clinica/${paciente.clinica_id}/pacientes`);
       } else {
+        console.log('Admin voltando para dashboard principal');
         navigate('/admin/dashboard');
       }
     } else {
