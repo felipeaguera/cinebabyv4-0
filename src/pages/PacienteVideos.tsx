@@ -11,6 +11,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import QRCodeComponent from '@/components/QRCodeComponent';
 
 interface Paciente {
@@ -37,6 +38,7 @@ const PacienteVideos = () => {
   const { pacienteId } = useParams<{ pacienteId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
+  const { isAdmin, clinicaData } = useAuth();
   
   const [paciente, setPaciente] = useState<Paciente | null>(null);
   const [clinica, setClinica] = useState<Clinica | null>(null);
@@ -88,32 +90,53 @@ const PacienteVideos = () => {
 
     setIsUploading(true);
     try {
+      console.log('Iniciando upload do arquivo:', uploadFile.name);
+      
       const fileExt = uploadFile.name.split('.').pop();
       const fileName = `${paciente.id}/${Date.now()}.${fileExt}`;
 
-      // Upload do arquivo para o Storage
-      const { error: uploadError } = await supabase.storage
-        .from('videos')
-        .upload(fileName, uploadFile);
+      console.log('Nome do arquivo no storage:', fileName);
 
-      if (uploadError) throw uploadError;
+      // Upload do arquivo para o Storage
+      const { data: uploadData, error: uploadError } = await supabase.storage
+        .from('videos')
+        .upload(fileName, uploadFile, {
+          cacheControl: '3600',
+          upsert: false
+        });
+
+      if (uploadError) {
+        console.error('Erro no upload:', uploadError);
+        throw uploadError;
+      }
+
+      console.log('Upload realizado com sucesso:', uploadData);
 
       // Obter URL público do arquivo
       const { data: { publicUrl } } = supabase.storage
         .from('videos')
         .getPublicUrl(fileName);
 
+      console.log('URL pública:', publicUrl);
+
       // Salvar registro no banco
-      const { error: dbError } = await supabase
+      const { data: videoData, error: dbError } = await supabase
         .from('videos')
         .insert({
           paciente_id: paciente.id,
           clinica_id: paciente.clinica_id,
           titulo: videoTitle || null,
           arquivo_url: publicUrl,
-        });
+        })
+        .select()
+        .single();
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Erro ao salvar no banco:', dbError);
+        throw dbError;
+      }
+
+      console.log('Vídeo salvo no banco:', videoData);
 
       toast({
         title: "Sucesso!",
@@ -125,9 +148,21 @@ const PacienteVideos = () => {
       fetchPacienteData();
     } catch (error) {
       console.error('Erro ao fazer upload:', error);
+      
+      let errorMessage = "Erro ao enviar vídeo. Tente novamente.";
+      
+      if (error && typeof error === 'object' && 'message' in error) {
+        const errorMsg = error.message as string;
+        if (errorMsg.includes('row-level security')) {
+          errorMessage = "Erro de permissão. Verifique se você está logado corretamente.";
+        } else if (errorMsg.includes('bucket')) {
+          errorMessage = "Erro no armazenamento. Contate o administrador.";
+        }
+      }
+      
       toast({
         title: "Erro",
-        description: "Erro ao enviar vídeo. Tente novamente.",
+        description: errorMessage,
         variant: "destructive",
       });
     } finally {
@@ -172,8 +207,21 @@ const PacienteVideos = () => {
     }
   };
 
+  const handleGoBack = () => {
+    if (isAdmin) {
+      // Se é admin, volta para a página de pacientes da clínica específica
+      if (paciente?.clinica_id) {
+        navigate(`/admin/clinica/${paciente.clinica_id}/pacientes`);
+      } else {
+        navigate('/admin/dashboard');
+      }
+    } else {
+      // Se é usuário da clínica, volta para o dashboard da clínica
+      navigate('/clinica/dashboard');
+    }
+  };
+
   const handlePrintCard = () => {
-    const publicUrl = `${window.location.origin}/paciente/${pacienteId}`;
     const printWindow = window.open(`/print-card/${pacienteId}`, '_blank');
     if (printWindow) {
       printWindow.focus();
@@ -207,7 +255,7 @@ const PacienteVideos = () => {
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
           <Button
-            onClick={() => navigate(-1)}
+            onClick={handleGoBack}
             variant="outline"
             className="mb-4"
           >
