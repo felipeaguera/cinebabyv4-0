@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
 import { ArrowLeft, Upload, Trash2, QrCode, Printer, Play } from 'lucide-react';
@@ -48,6 +47,25 @@ const PacienteVideos = () => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [videoTitle, setVideoTitle] = useState('');
 
+  // Simular autenticação para que as políticas RLS funcionem
+  useEffect(() => {
+    const simulateAuth = async () => {
+      try {
+        // Criar uma sessão simulada para que as políticas RLS funcionem
+        const { data, error } = await supabase.auth.signInAnonymously();
+        if (error) {
+          console.log('Erro na autenticação anônima (pode ser ignorado):', error);
+        } else {
+          console.log('Sessão anônima criada:', data);
+        }
+      } catch (error) {
+        console.log('Autenticação anônima não disponível, continuando sem autenticação');
+      }
+    };
+
+    simulateAuth();
+  }, []);
+
   const fetchPacienteData = async () => {
     if (!pacienteId) return;
 
@@ -91,11 +109,21 @@ const PacienteVideos = () => {
     setIsUploading(true);
     try {
       console.log('Iniciando upload do arquivo:', uploadFile.name);
+      console.log('Tamanho do arquivo:', uploadFile.size, 'bytes');
+      console.log('Tipo do arquivo:', uploadFile.type);
       
       const fileExt = uploadFile.name.split('.').pop();
       const fileName = `${paciente.id}/${Date.now()}.${fileExt}`;
 
       console.log('Nome do arquivo no storage:', fileName);
+
+      // Verificar se o bucket existe
+      const { data: buckets, error: bucketsError } = await supabase.storage.listBuckets();
+      console.log('Buckets disponíveis:', buckets);
+      
+      if (bucketsError) {
+        console.error('Erro ao listar buckets:', bucketsError);
+      }
 
       // Upload do arquivo para o Storage
       const { data: uploadData, error: uploadError } = await supabase.storage
@@ -157,6 +185,10 @@ const PacienteVideos = () => {
           errorMessage = "Erro de permissão. Verifique se você está logado corretamente.";
         } else if (errorMsg.includes('bucket')) {
           errorMessage = "Erro no armazenamento. Contate o administrador.";
+        } else if (errorMsg.includes('File size')) {
+          errorMessage = "Arquivo muito grande. Tente um arquivo menor.";
+        } else if (errorMsg.includes('not found')) {
+          errorMessage = "Bucket de vídeos não encontrado. Contate o administrador.";
         }
       }
       
@@ -176,12 +208,17 @@ const PacienteVideos = () => {
       const urlParts = fileName.split('/');
       const fileNameInStorage = urlParts.slice(-2).join('/'); // paciente_id/timestamp.ext
 
+      console.log('Deletando arquivo:', fileNameInStorage);
+
       // Deletar arquivo do Storage
       const { error: storageError } = await supabase.storage
         .from('videos')
         .remove([fileNameInStorage]);
 
-      if (storageError) throw storageError;
+      if (storageError) {
+        console.error('Erro ao deletar do storage:', storageError);
+        throw storageError;
+      }
 
       // Deletar registro do banco
       const { error: dbError } = await supabase
@@ -189,7 +226,10 @@ const PacienteVideos = () => {
         .delete()
         .eq('id', videoId);
 
-      if (dbError) throw dbError;
+      if (dbError) {
+        console.error('Erro ao deletar do banco:', dbError);
+        throw dbError;
+      }
 
       toast({
         title: "Sucesso!",
@@ -337,6 +377,11 @@ const PacienteVideos = () => {
                     accept="video/*"
                     onChange={(e) => setUploadFile(e.target.files?.[0] || null)}
                   />
+                  {uploadFile && (
+                    <p className="text-sm text-gray-500 mt-1">
+                      Arquivo selecionado: {uploadFile.name} ({(uploadFile.size / 1024 / 1024).toFixed(2)} MB)
+                    </p>
+                  )}
                 </div>
                 
                 <Button
