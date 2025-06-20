@@ -52,7 +52,8 @@ export const useAuth = () => {
       }
       
       // Se não há autenticação e está tentando acessar área protegida
-      if (!clinicaLogada && (currentPath.startsWith('/admin') || currentPath.startsWith('/clinica'))) {
+      // MUDANÇA: Permitir que admins acessem áreas de clínica quando estão em rotas admin
+      if (!clinicaLogada && !currentPath.startsWith('/admin') && (currentPath.startsWith('/clinica'))) {
         if (currentPath !== '/') {
           navigate('/');
           return;

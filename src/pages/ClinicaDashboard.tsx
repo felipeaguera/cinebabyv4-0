@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Trash2, Search, LogOut } from 'lucide-react';
+import { Users, Plus, Trash2, Search, LogOut, ArrowLeft } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -29,13 +29,41 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [clinicaInfo, setClinicaInfo] = useState<any>(null);
   const { toast } = useToast();
   const { isAdmin, clinicaData } = useAuth();
   const navigate = useNavigate();
 
   // Determinar qual clínica usar (própria ou especificada pelo admin)
   const currentClinicaId = clinicaId || clinicaData?.id;
-  const currentClinicaName = clinicaId ? 'Clínica Selecionada' : clinicaData?.nome;
+  const currentClinicaName = clinicaInfo?.nome || clinicaData?.nome || 'Clínica Selecionada';
+
+  // Buscar informações da clínica quando admin acessa via ID
+  useEffect(() => {
+    const fetchClinicaInfo = async () => {
+      if (clinicaId && isAdmin) {
+        try {
+          const { data, error } = await supabase
+            .from('clinicas')
+            .select('*')
+            .eq('id', clinicaId)
+            .single();
+
+          if (error) throw error;
+          setClinicaInfo(data);
+        } catch (error) {
+          console.error('Erro ao buscar dados da clínica:', error);
+          toast({
+            title: "Erro",
+            description: "Erro ao carregar dados da clínica.",
+            variant: "destructive",
+          });
+        }
+      }
+    };
+
+    fetchClinicaInfo();
+  }, [clinicaId, isAdmin]);
 
   const handleLogout = async () => {
     try {
@@ -59,6 +87,10 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleBackToAdmin = () => {
+    navigate('/admin/dashboard');
   };
 
   const fetchPacientes = async () => {
@@ -163,20 +195,35 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
               <div>
                 <h1 className="text-3xl font-bold text-cinebaby-purple">
                   Pacientes da {currentClinicaName}
+                  {isAdmin && clinicaId && (
+                    <span className="text-sm font-normal text-gray-500 ml-2">(Visualização Admin)</span>
+                  )}
                 </h1>
                 <p className="text-gray-600">Gerencie suas pacientes e seus ultrassons</p>
               </div>
             </div>
-            {!isAdmin && (
-              <Button
-                onClick={handleLogout}
-                variant="outline"
-                className="border-cinebaby-purple text-cinebaby-purple hover:bg-cinebaby-purple hover:text-white"
-              >
-                <LogOut className="w-4 h-4 mr-2" />
-                Sair
-              </Button>
-            )}
+            <div className="flex items-center space-x-2">
+              {isAdmin && clinicaId && (
+                <Button
+                  onClick={handleBackToAdmin}
+                  variant="outline"
+                  className="border-cinebaby-turquoise text-cinebaby-turquoise hover:bg-cinebaby-turquoise hover:text-white"
+                >
+                  <ArrowLeft className="w-4 h-4 mr-2" />
+                  Voltar ao Admin
+                </Button>
+              )}
+              {!isAdmin && (
+                <Button
+                  onClick={handleLogout}
+                  variant="outline"
+                  className="border-cinebaby-purple text-cinebaby-purple hover:bg-cinebaby-purple hover:text-white"
+                >
+                  <LogOut className="w-4 h-4 mr-2" />
+                  Sair
+                </Button>
+              )}
+            </div>
           </div>
         </div>
 
