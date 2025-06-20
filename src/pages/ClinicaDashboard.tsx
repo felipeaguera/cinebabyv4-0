@@ -1,5 +1,5 @@
-
 import React, { useState, useEffect } from 'react';
+import { useNavigate } from 'react-router-dom';
 import { Users, Plus, Trash2, Search, LogOut } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -30,11 +30,36 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
-  const { isAdmin, clinicaData, logout } = useAuth();
+  const { isAdmin, clinicaData } = useAuth();
+  const navigate = useNavigate();
 
   // Determinar qual clínica usar (própria ou especificada pelo admin)
   const currentClinicaId = clinicaId || clinicaData?.id;
   const currentClinicaName = clinicaId ? 'Clínica Selecionada' : clinicaData?.nome;
+
+  const handleLogout = async () => {
+    try {
+      // Limpar dados da clínica do localStorage
+      localStorage.removeItem('clinicaLogada');
+      
+      // Fazer logout do Supabase
+      await supabase.auth.signOut();
+      
+      toast({
+        title: "Sucesso!",
+        description: "Você saiu com sucesso.",
+      });
+      
+      navigate('/');
+    } catch (error) {
+      console.error('Erro ao fazer logout:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao sair da conta. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
 
   const fetchPacientes = async () => {
     if (!currentClinicaId) return;
@@ -140,7 +165,7 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
             </div>
             {!isAdmin && (
               <Button
-                onClick={logout}
+                onClick={handleLogout}
                 variant="outline"
                 className="border-cinebaby-purple text-cinebaby-purple hover:bg-cinebaby-purple hover:text-white"
               >
