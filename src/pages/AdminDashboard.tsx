@@ -1,3 +1,4 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Users, Heart, Plus, Trash2, Eye, LogOut, Edit } from 'lucide-react';
@@ -29,6 +30,12 @@ const AdminDashboard = () => {
   const [selectedClinica, setSelectedClinica] = useState<Clinica | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
+
+  useEffect(() => {
+    // Limpar flags de admin quando entrar no dashboard principal
+    sessionStorage.removeItem('fromAdmin');
+    sessionStorage.removeItem('adminClinicaId');
+  }, []);
 
   const handleLogout = async () => {
     try {
@@ -95,6 +102,9 @@ const AdminDashboard = () => {
   };
 
   const handleAccessPacientes = (clinicaId: string) => {
+    // Definir flags antes de navegar
+    sessionStorage.setItem('fromAdmin', 'true');
+    sessionStorage.setItem('adminClinicaId', clinicaId);
     navigate(`/admin/clinica/${clinicaId}/pacientes`);
   };
 

@@ -47,6 +47,7 @@ const PacienteVideos = () => {
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [videoTitle, setVideoTitle] = useState('');
   const [isRealAdmin, setIsRealAdmin] = useState(false);
+  const [cameFromAdmin, setCameFromAdmin] = useState(false);
 
   // Verificar se é realmente admin logado
   const checkIfRealAdmin = async () => {
@@ -58,6 +59,12 @@ const PacienteVideos = () => {
     } catch (error) {
       console.error('Erro ao verificar admin:', error);
     }
+  };
+
+  // Verificar se veio do admin
+  const checkIfCameFromAdmin = () => {
+    const fromAdmin = sessionStorage.getItem('fromAdmin');
+    setCameFromAdmin(fromAdmin === 'true');
   };
 
   const fetchPacienteData = async () => {
@@ -243,10 +250,16 @@ const PacienteVideos = () => {
   };
 
   const handleGoBack = () => {
-    if (isAdmin || isRealAdmin) {
-      // Se é admin, volta para a página de pacientes da clínica específica
-      if (paciente?.clinica_id) {
-        console.log('Admin navegando de volta para clínica:', paciente.clinica_id);
+    const fromAdmin = sessionStorage.getItem('fromAdmin');
+    const adminClinicaId = sessionStorage.getItem('adminClinicaId');
+    
+    if (fromAdmin === 'true' && (isAdmin || isRealAdmin)) {
+      // Se veio do admin, volta para a lista de pacientes da clínica específica
+      if (adminClinicaId) {
+        console.log('Admin navegando de volta para clínica:', adminClinicaId);
+        navigate(`/admin/clinica/${adminClinicaId}/pacientes`);
+      } else if (paciente?.clinica_id) {
+        console.log('Admin navegando de volta para clínica via paciente:', paciente.clinica_id);
         navigate(`/admin/clinica/${paciente.clinica_id}/pacientes`);
       } else {
         console.log('Admin voltando para dashboard principal');
@@ -259,8 +272,10 @@ const PacienteVideos = () => {
   };
 
   const handleLogout = () => {
-    // Se for admin real (logado), apenas navega de volta sem fazer logout
-    if (isRealAdmin) {
+    const fromAdmin = sessionStorage.getItem('fromAdmin');
+    
+    // Se veio do admin, apenas navega de volta sem fazer logout
+    if (fromAdmin === 'true' && (isRealAdmin || isAdmin)) {
       handleGoBack();
       return;
     }
@@ -284,6 +299,7 @@ const PacienteVideos = () => {
   useEffect(() => {
     fetchPacienteData();
     checkIfRealAdmin();
+    checkIfCameFromAdmin();
   }, [pacienteId]);
 
   if (isLoading) {
@@ -317,8 +333,8 @@ const PacienteVideos = () => {
               Voltar
             </Button>
             
-            {/* Só mostra botão Sair se NÃO for admin real */}
-            {!isRealAdmin && !isAdmin && clinicaData && (
+            {/* Só mostra botão Sair se NÃO for admin navegando de dentro do dashboard admin */}
+            {!cameFromAdmin && !isRealAdmin && !isAdmin && clinicaData && (
               <Button
                 onClick={handleLogout}
                 variant="outline"
