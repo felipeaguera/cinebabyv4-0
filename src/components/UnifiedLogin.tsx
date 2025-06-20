@@ -9,7 +9,7 @@ import { toast } from '@/hooks/use-toast';
 import { Mail, Lock, Heart } from 'lucide-react';
 import { supabase } from '@/integrations/supabase/client';
 
-const ClinicLogin = () => {
+const UnifiedLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -20,6 +20,17 @@ const ClinicLogin = () => {
     setIsLoading(true);
 
     try {
+      // Verificar se é o administrador principal
+      if (email === 'admin@cinebaby.online' && password === 'admin123') {
+        toast({
+          title: "Login realizado com sucesso!",
+          description: "Bem-vindo ao painel administrativo do CineBaby.",
+        });
+        navigate('/admin/dashboard');
+        return;
+      }
+
+      // Verificar se é uma clínica
       const { data, error } = await supabase
         .from('clinicas')
         .select('*')
@@ -75,10 +86,10 @@ const ClinicLogin = () => {
               </div>
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-cinebaby-purple">
-                  Acesso da Clínica
+                  Bem-vindo à CineBaby
                 </h1>
                 <p className="text-gray-600 text-sm mt-2">
-                  Gerencie suas pacientes e ultrassons
+                  Faça login com seu e-mail e senha para acessar o painel da sua clínica ou o painel de administração.
                 </p>
               </div>
             </div>
@@ -88,14 +99,14 @@ const ClinicLogin = () => {
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-cinebaby-purple font-medium">
-                  Email da clínica
+                  E-mail de acesso
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="clinica@exemplo.com"
+                    placeholder="seu@email.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-12 border-gray-200 focus:border-cinebaby-turquoise focus:ring-cinebaby-turquoise"
@@ -133,31 +144,27 @@ const ClinicLogin = () => {
                     <span>Entrando...</span>
                   </div>
                 ) : (
-                  'Acessar Painel'
+                  'Entrar'
                 )}
               </Button>
             </form>
 
             <div className="mt-8 text-center">
               <p className="text-xs text-gray-500 italic">
-                "Compartilhando momentos únicos com as famílias"
+                "Reviva esse momento mágico sempre que quiser"
               </p>
             </div>
           </CardContent>
         </Card>
 
         <div className="mt-6 text-center">
-          <Button
-            variant="ghost"
-            onClick={() => navigate('/')}
-            className="text-sm text-gray-500 hover:text-cinebaby-purple"
-          >
-            ← Voltar ao login administrativo
-          </Button>
+          <p className="text-sm text-gray-500">
+            Plataforma segura para clínicas de ultrassonografia
+          </p>
         </div>
       </div>
     </div>
   );
 };
 
-export default ClinicLogin;
+export default UnifiedLogin;

@@ -1,6 +1,5 @@
 
 import React, { useState, useEffect } from 'react';
-import { useNavigate } from 'react-router-dom';
 import { Users, Plus, Trash2, Search, LogOut } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
@@ -9,6 +8,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@
 import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
+import { useAuth } from '@/hooks/useAuth';
 import PacienteForm from '@/components/PacienteForm';
 
 interface Paciente {
@@ -16,90 +16,39 @@ interface Paciente {
   nome: string;
   telefone: string;
   created_at: string;
-}
-
-interface Clinica {
-  id: string;
-  nome: string;
-  cidade: string;
-  endereco: string;
-  telefone: string;
-  email: string;
+  clinica_id: string;
 }
 
 interface ClinicaDashboardProps {
-  clinicaId?: string; // Para quando o admin acessa uma clínica específica
+  clinicaId?: string; // Para quando admin acessa pacientes de uma clínica específica
 }
 
 const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
   const [pacientes, setPacientes] = useState<Paciente[]>([]);
   const [filteredPacientes, setFilteredPacientes] = useState<Paciente[]>([]);
-  const [clinica, setClinica] = useState<Clinica | null>(null);
+  const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
-  const [searchTerm, setSearchTerm] = useState('');
-  const [isAdminAccess, setIsAdminAccess] = useState(false);
   const { toast } = useToast();
-  const navigate = useNavigate();
+  const { isAdmin, clinicaData, logout } = useAuth();
 
-  useEffect(() => {
-    // Verificar se é acesso do admin ou da própria clínica
-    let currentClinicaId = clinicaId;
+  // Determinar qual clínica usar (própria ou especificada pelo admin)
+  const currentClinicaId = clinicaId || clinicaData?.id;
+  const currentClinicaName = clinicaId ? 'Clínica Selecionada' : clinicaData?.nome;
+
+  const fetchPacientes = async () => {
+    if (!currentClinicaId) return;
     
-    if (!currentClinicaId) {
-      const clinicaLogada = localStorage.getItem('clinicaLogada');
-      if (clinicaLogada) {
-        const clinicaData = JSON.parse(clinicaLogada);
-        currentClinicaId = clinicaData.id;
-        setClinica(clinicaData);
-      } else {
-        navigate('/clinica/login');
-        return;
-      }
-    } else {
-      setIsAdminAccess(true);
-      fetchClinicaData(currentClinicaId);
-    }
-
-    if (currentClinicaId) {
-      fetchPacientes(currentClinicaId);
-    }
-  }, [clinicaId, navigate]);
-
-  useEffect(() => {
-    filterPacientes();
-  }, [searchTerm, pacientes]);
-
-  const fetchClinicaData = async (id: string) => {
-    try {
-      const { data, error } = await supabase
-        .from('clinicas')
-        .select('*')
-        .eq('id', id)
-        .single();
-
-      if (error) throw error;
-      setClinica(data);
-    } catch (error) {
-      console.error('Erro ao buscar dados da clínica:', error);
-      toast({
-        title: "Erro",
-        description: "Erro ao carregar dados da clínica.",
-        variant: "destructive",
-      });
-    }
-  };
-
-  const fetchPacientes = async (clinicaId: string) => {
     try {
       const { data, error } = await supabase
         .from('pacientes')
         .select('*')
-        .eq('clinica_id', clinicaId)
+        .eq('clinica_id', currentClinicaId)
         .order('created_at', { ascending: false });
 
       if (error) throw error;
       setPacientes(data || []);
+      setFilteredPacientes(data || []);
     } catch (error) {
       console.error('Erro ao buscar pacientes:', error);
       toast({
@@ -112,13 +61,14 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
     }
   };
 
-  const filterPacientes = () => {
-    if (!searchTerm) {
+  const handleSearch = (term: string) => {
+    setSearchTerm(term);
+    if (term.trim() === '') {
       setFilteredPacientes(pacientes);
     } else {
       const filtered = pacientes.filter(paciente =>
-        paciente.nome.toLowerCase().includes(searchTerm.toLowerCase()) ||
-        paciente.telefone.includes(searchTerm)
+        paciente.nome.toLowerCase().includes(term.toLowerCase()) ||
+        paciente.telefone.includes(term)
       );
       setFilteredPacientes(filtered);
     }
@@ -126,21 +76,28 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
 
   const handleDeletePaciente = async (id: string, nome: string) => {
     try {
-      const { error } = await supabase
+      // Primeiro, deletar todos os vídeos relacionados ao paciente
+      const { error: videosError } = await supabase
+        .from('videos')
+        .delete()
+        .eq('paciente_id', id);
+
+      if (videosError) throw videosError;
+
+      // Depois, deletar o paciente
+      const { error: pacienteError } = await supabase
         .from('pacientes')
         .delete()
         .eq('id', id);
 
-      if (error) throw error;
+      if (pacienteError) throw pacienteError;
 
       toast({
         title: "Sucesso!",
         description: `Paciente "${nome}" excluída com sucesso.`,
       });
 
-      if (clinica) {
-        fetchPacientes(clinica.id);
-      }
+      fetchPacientes();
     } catch (error) {
       console.error('Erro ao excluir paciente:', error);
       toast({
@@ -151,23 +108,14 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
     }
   };
 
-  const handleLogout = () => {
-    localStorage.removeItem('clinicaLogada');
-    navigate('/clinica/login');
-  };
+  useEffect(() => {
+    fetchPacientes();
+  }, [currentClinicaId]);
 
-  const handleBackToAdmin = () => {
-    navigate('/admin/dashboard');
-  };
-
-  const formatDate = (dateString: string) => {
-    return new Date(dateString).toLocaleDateString('pt-BR');
-  };
-
-  if (!clinica) {
+  if (!currentClinicaId) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-cinebaby-purple/5 via-white to-cinebaby-turquoise/5 flex items-center justify-center">
-        <div className="text-gray-500">Carregando...</div>
+        <div className="text-red-500">Erro: Clínica não identificada</div>
       </div>
     );
   }
@@ -185,35 +133,25 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
               />
               <div>
                 <h1 className="text-3xl font-bold text-cinebaby-purple">
-                  Pacientes da Clínica {clinica.nome}
+                  Pacientes da {currentClinicaName}
                 </h1>
-                <p className="text-gray-600">{clinica.cidade} - {clinica.telefone}</p>
+                <p className="text-gray-600">Gerencie suas pacientes e seus ultrassons</p>
               </div>
             </div>
-            <div className="flex space-x-2">
-              {isAdminAccess ? (
-                <Button
-                  onClick={handleBackToAdmin}
-                  variant="outline"
-                  className="border-cinebaby-purple text-cinebaby-purple hover:bg-cinebaby-purple hover:text-white"
-                >
-                  ← Voltar ao painel admin
-                </Button>
-              ) : (
-                <Button
-                  onClick={handleLogout}
-                  variant="outline"
-                  className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
-                >
-                  <LogOut className="w-4 h-4 mr-2" />
-                  Sair
-                </Button>
-              )}
-            </div>
+            {!isAdmin && (
+              <Button
+                onClick={logout}
+                variant="outline"
+                className="border-cinebaby-purple text-cinebaby-purple hover:bg-cinebaby-purple hover:text-white"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            )}
           </div>
         </div>
 
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6 mb-8">
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-6 mb-8">
           <Card className="border-l-4 border-cinebaby-purple shadow-lg">
             <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
               <CardTitle className="text-sm font-medium text-gray-600">
@@ -228,21 +166,42 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
               </p>
             </CardContent>
           </Card>
+
+          <Card className="border-l-4 border-cinebaby-turquoise shadow-lg">
+            <CardHeader className="flex flex-row items-center justify-between space-y-0 pb-2">
+              <CardTitle className="text-sm font-medium text-gray-600">
+                Pacientes Hoje
+              </CardTitle>
+              <Users className="h-4 w-4 text-cinebaby-turquoise" />
+            </CardHeader>
+            <CardContent>
+              <div className="text-2xl font-bold text-cinebaby-turquoise">
+                {pacientes.filter(p => {
+                  const today = new Date().toDateString();
+                  const pacienteDate = new Date(p.created_at).toDateString();
+                  return today === pacienteDate;
+                }).length}
+              </div>
+              <p className="text-xs text-gray-500">
+                Cadastradas hoje
+              </p>
+            </CardContent>
+          </Card>
         </div>
 
         <Card className="shadow-lg">
           <CardHeader>
-            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center space-y-4 sm:space-y-0">
+            <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-4">
               <CardTitle className="text-xl text-cinebaby-purple">
                 Lista de Pacientes
               </CardTitle>
-              <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4 w-full sm:w-auto">
+              <div className="flex flex-col sm:flex-row gap-4 w-full sm:w-auto">
                 <div className="relative">
                   <Search className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     placeholder="Buscar por nome ou telefone..."
                     value={searchTerm}
-                    onChange={(e) => setSearchTerm(e.target.value)}
+                    onChange={(e) => handleSearch(e.target.value)}
                     className="pl-10 w-full sm:w-64"
                   />
                 </div>
@@ -292,7 +251,9 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
                     <TableRow key={paciente.id}>
                       <TableCell className="font-medium">{paciente.nome}</TableCell>
                       <TableCell>{paciente.telefone}</TableCell>
-                      <TableCell>{formatDate(paciente.created_at)}</TableCell>
+                      <TableCell>
+                        {new Date(paciente.created_at).toLocaleDateString('pt-BR')}
+                      </TableCell>
                       <TableCell className="text-center">
                         <AlertDialog>
                           <AlertDialogTrigger asChild>
@@ -309,7 +270,7 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
                               <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
                               <AlertDialogDescription>
                                 Tem certeza que deseja excluir a paciente "{paciente.nome}"? 
-                                Essa ação não poderá ser desfeita e todos os vídeos relacionados também serão removidos.
+                                Essa ação não poderá ser desfeita e todos os vídeos relacionados também serão excluídos.
                               </AlertDialogDescription>
                             </AlertDialogHeader>
                             <AlertDialogFooter>
@@ -336,12 +297,8 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
       <PacienteForm 
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        onSuccess={() => {
-          if (clinica) {
-            fetchPacientes(clinica.id);
-          }
-        }}
-        clinicaId={clinica.id}
+        onSuccess={fetchPacientes}
+        clinicaId={currentClinicaId}
       />
     </div>
   );

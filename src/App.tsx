@@ -4,8 +4,7 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { QueryClient, QueryClientProvider } from "@tanstack/react-query";
 import { BrowserRouter, Routes, Route } from "react-router-dom";
-import Login from "./components/Login";
-import ClinicLogin from "./components/ClinicLogin";
+import UnifiedLogin from "./components/UnifiedLogin";
 import AdminDashboard from "./pages/AdminDashboard";
 import ClinicaDashboard from "./pages/ClinicaDashboard";
 import AdminClinicaPacientes from "./pages/AdminClinicaPacientes";
@@ -21,8 +20,7 @@ const App = () => (
       <Sonner />
       <BrowserRouter>
         <Routes>
-          <Route path="/" element={<Login />} />
-          <Route path="/clinica/login" element={<ClinicLogin />} />
+          <Route path="/" element={<UnifiedLogin />} />
           <Route path="/clinica/dashboard" element={<ClinicaDashboard />} />
           <Route path="/admin/dashboard" element={<AdminDashboard />} />
           <Route path="/admin/clinica/:clinicaId/pacientes" element={<AdminClinicaPacientes />} />
