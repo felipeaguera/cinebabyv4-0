@@ -1,9 +1,80 @@
 
-import React from 'react';
-import { Building2, Users, Heart } from 'lucide-react';
+import React, { useState, useEffect } from 'react';
+import { Building2, Users, Heart, Plus, Trash2 } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Button } from '@/components/ui/button';
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
+import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, AlertDialogDescription, AlertDialogFooter, AlertDialogHeader, AlertDialogTitle, AlertDialogTrigger } from '@/components/ui/alert-dialog';
+import { supabase } from '@/integrations/supabase/client';
+import { useToast } from '@/hooks/use-toast';
+import ClinicaForm from '@/components/ClinicaForm';
+
+interface Clinica {
+  id: string;
+  nome: string;
+  cidade: string;
+  endereco: string;
+  telefone: string;
+  email: string;
+  created_at: string;
+}
 
 const AdminDashboard = () => {
+  const [clinicas, setClinicas] = useState<Clinica[]>([]);
+  const [isLoading, setIsLoading] = useState(true);
+  const [isFormOpen, setIsFormOpen] = useState(false);
+  const { toast } = useToast();
+
+  const fetchClinicas = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('clinicas')
+        .select('*')
+        .order('created_at', { ascending: false });
+
+      if (error) throw error;
+      setClinicas(data || []);
+    } catch (error) {
+      console.error('Erro ao buscar clínicas:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao carregar clínicas.",
+        variant: "destructive",
+      });
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleDeleteClinica = async (id: string, nome: string) => {
+    try {
+      const { error } = await supabase
+        .from('clinicas')
+        .delete()
+        .eq('id', id);
+
+      if (error) throw error;
+
+      toast({
+        title: "Sucesso!",
+        description: `Clínica "${nome}" excluída com sucesso.`,
+      });
+
+      fetchClinicas();
+    } catch (error) {
+      console.error('Erro ao excluir clínica:', error);
+      toast({
+        title: "Erro",
+        description: "Erro ao excluir clínica. Tente novamente.",
+        variant: "destructive",
+      });
+    }
+  };
+
+  useEffect(() => {
+    fetchClinicas();
+  }, []);
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-cinebaby-purple/5 via-white to-cinebaby-turquoise/5">
       <div className="container mx-auto px-4 py-8">
@@ -32,7 +103,7 @@ const AdminDashboard = () => {
               <Building2 className="h-4 w-4 text-cinebaby-purple" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-cinebaby-purple">0</div>
+              <div className="text-2xl font-bold text-cinebaby-purple">{clinicas.length}</div>
               <p className="text-xs text-gray-500">
                 Clínicas cadastradas na plataforma
               </p>
@@ -72,31 +143,99 @@ const AdminDashboard = () => {
 
         <Card className="shadow-lg">
           <CardHeader>
-            <CardTitle className="text-xl text-cinebaby-purple">
-              Próximos Passos
-            </CardTitle>
+            <div className="flex justify-between items-center">
+              <CardTitle className="text-xl text-cinebaby-purple">
+                Clínicas Cadastradas
+              </CardTitle>
+              <Button
+                onClick={() => setIsFormOpen(true)}
+                className="bg-cinebaby-purple hover:bg-cinebaby-purple/90"
+              >
+                <Plus className="w-4 h-4 mr-2" />
+                Cadastrar Nova Clínica
+              </Button>
+            </div>
           </CardHeader>
           <CardContent>
-            <p className="text-gray-600 mb-4">
-              Bem-vindo ao painel administrativo do CineBaby! Em breve você poderá:
-            </p>
-            <ul className="space-y-2 text-gray-600">
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-cinebaby-purple rounded-full"></div>
-                <span>Cadastrar e gerenciar clínicas parceiras</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-cinebaby-turquoise rounded-full"></div>
-                <span>Acompanhar estatísticas da plataforma</span>
-              </li>
-              <li className="flex items-center space-x-2">
-                <div className="w-2 h-2 bg-pink-400 rounded-full"></div>
-                <span>Monitorar o crescimento de momentos especiais compartilhados</span>
-              </li>
-            </ul>
+            {isLoading ? (
+              <div className="flex justify-center py-8">
+                <div className="text-gray-500">Carregando clínicas...</div>
+              </div>
+            ) : clinicas.length === 0 ? (
+              <div className="text-center py-8">
+                <Building2 className="mx-auto h-12 w-12 text-gray-400 mb-4" />
+                <p className="text-gray-500 mb-4">Nenhuma clínica cadastrada ainda.</p>
+                <Button
+                  onClick={() => setIsFormOpen(true)}
+                  className="bg-cinebaby-purple hover:bg-cinebaby-purple/90"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Cadastrar Primeira Clínica
+                </Button>
+              </div>
+            ) : (
+              <Table>
+                <TableHeader>
+                  <TableRow>
+                    <TableHead>Nome da Clínica</TableHead>
+                    <TableHead>Cidade</TableHead>
+                    <TableHead>Telefone</TableHead>
+                    <TableHead>Email</TableHead>
+                    <TableHead className="text-center">Ações</TableHead>
+                  </TableRow>
+                </TableHeader>
+                <TableBody>
+                  {clinicas.map((clinica) => (
+                    <TableRow key={clinica.id}>
+                      <TableCell className="font-medium">{clinica.nome}</TableCell>
+                      <TableCell>{clinica.cidade}</TableCell>
+                      <TableCell>{clinica.telefone}</TableCell>
+                      <TableCell>{clinica.email}</TableCell>
+                      <TableCell className="text-center">
+                        <AlertDialog>
+                          <AlertDialogTrigger asChild>
+                            <Button
+                              variant="destructive"
+                              size="sm"
+                              className="bg-red-500 hover:bg-red-600"
+                            >
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </AlertDialogTrigger>
+                          <AlertDialogContent>
+                            <AlertDialogHeader>
+                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                              <AlertDialogDescription>
+                                Tem certeza que deseja excluir a clínica "{clinica.nome}"? 
+                                Essa ação não poderá ser desfeita.
+                              </AlertDialogDescription>
+                            </AlertDialogHeader>
+                            <AlertDialogFooter>
+                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                              <AlertDialogAction
+                                onClick={() => handleDeleteClinica(clinica.id, clinica.nome)}
+                                className="bg-red-500 hover:bg-red-600"
+                              >
+                                Excluir
+                              </AlertDialogAction>
+                            </AlertDialogFooter>
+                          </AlertDialogContent>
+                        </AlertDialog>
+                      </TableCell>
+                    </TableRow>
+                  ))}
+                </TableBody>
+              </Table>
+            )}
           </CardContent>
         </Card>
       </div>
+
+      <ClinicaForm 
+        isOpen={isFormOpen}
+        onClose={() => setIsFormOpen(false)}
+        onSuccess={fetchClinicas}
+      />
     </div>
   );
 };
