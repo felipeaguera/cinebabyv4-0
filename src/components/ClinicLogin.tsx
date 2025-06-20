@@ -7,8 +7,9 @@ import { Label } from '@/components/ui/label';
 import { Card, CardContent, CardHeader } from '@/components/ui/card';
 import { toast } from '@/hooks/use-toast';
 import { Mail, Lock, Heart } from 'lucide-react';
+import { supabase } from '@/integrations/supabase/client';
 
-const Login = () => {
+const ClinicLogin = () => {
   const [email, setEmail] = useState('');
   const [password, setPassword] = useState('');
   const [isLoading, setIsLoading] = useState(false);
@@ -18,24 +19,42 @@ const Login = () => {
     e.preventDefault();
     setIsLoading(true);
 
-    // Simulate loading time for better UX
-    await new Promise(resolve => setTimeout(resolve, 1000));
+    try {
+      const { data, error } = await supabase
+        .from('clinicas')
+        .select('*')
+        .eq('email', email)
+        .eq('senha', password)
+        .single();
 
-    if (email === 'admin@cinebaby.online' && password === 'admin123') {
+      if (error || !data) {
+        toast({
+          title: "Erro no login",
+          description: "Email ou senha incorretos",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Store clinic data in localStorage for session management
+      localStorage.setItem('clinicaLogada', JSON.stringify(data));
+      
       toast({
         title: "Login realizado com sucesso!",
-        description: "Bem-vindo ao painel administrativo do CineBaby.",
+        description: `Bem-vinda, ${data.nome}!`,
       });
-      navigate('/admin/dashboard');
-    } else {
+      
+      navigate('/clinica/dashboard');
+    } catch (error) {
+      console.error('Erro no login:', error);
       toast({
         title: "Erro no login",
-        description: "Usuário ou senha incorretos",
+        description: "Erro interno. Tente novamente.",
         variant: "destructive",
       });
+    } finally {
+      setIsLoading(false);
     }
-    
-    setIsLoading(false);
   };
 
   return (
@@ -56,10 +75,10 @@ const Login = () => {
               </div>
               <div className="text-center">
                 <h1 className="text-2xl font-bold text-cinebaby-purple">
-                  Administração CineBaby
+                  Acesso da Clínica
                 </h1>
                 <p className="text-gray-600 text-sm mt-2">
-                  Conectando momentos especiais através da tecnologia
+                  Gerencie suas pacientes e ultrassons
                 </p>
               </div>
             </div>
@@ -69,14 +88,14 @@ const Login = () => {
             <form onSubmit={handleLogin} className="space-y-6">
               <div className="space-y-2">
                 <Label htmlFor="email" className="text-cinebaby-purple font-medium">
-                  Email de acesso
+                  Email da clínica
                 </Label>
                 <div className="relative">
                   <Mail className="absolute left-3 top-3 h-4 w-4 text-gray-400" />
                   <Input
                     id="email"
                     type="email"
-                    placeholder="admin@cinebaby.online"
+                    placeholder="clinica@exemplo.com"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
                     className="pl-10 h-12 border-gray-200 focus:border-cinebaby-turquoise focus:ring-cinebaby-turquoise"
@@ -114,37 +133,31 @@ const Login = () => {
                     <span>Entrando...</span>
                   </div>
                 ) : (
-                  'Entrar no Painel'
+                  'Acessar Painel'
                 )}
               </Button>
             </form>
 
-            <div className="mt-6 text-center">
-              <Button
-                variant="outline"
-                onClick={() => navigate('/clinica/login')}
-                className="w-full border-cinebaby-purple text-cinebaby-purple hover:bg-cinebaby-purple hover:text-white"
-              >
-                Sou uma clínica - Fazer login
-              </Button>
-            </div>
-
             <div className="mt-8 text-center">
               <p className="text-xs text-gray-500 italic">
-                "Reviva esse momento mágico sempre que quiser"
+                "Compartilhando momentos únicos com as famílias"
               </p>
             </div>
           </CardContent>
         </Card>
 
         <div className="mt-6 text-center">
-          <p className="text-sm text-gray-500">
-            Plataforma segura para clínicas de ultrassonografia
-          </p>
+          <Button
+            variant="ghost"
+            onClick={() => navigate('/')}
+            className="text-sm text-gray-500 hover:text-cinebaby-purple"
+          >
+            ← Voltar ao login administrativo
+          </Button>
         </div>
       </div>
     </div>
   );
 };
 
-export default Login;
+export default ClinicLogin;

@@ -45,6 +45,83 @@ export type Database = {
         }
         Relationships: []
       }
+      pacientes: {
+        Row: {
+          clinica_id: string
+          created_at: string
+          id: string
+          nome: string
+          telefone: string
+          updated_at: string
+        }
+        Insert: {
+          clinica_id: string
+          created_at?: string
+          id?: string
+          nome: string
+          telefone: string
+          updated_at?: string
+        }
+        Update: {
+          clinica_id?: string
+          created_at?: string
+          id?: string
+          nome?: string
+          telefone?: string
+          updated_at?: string
+        }
+        Relationships: [
+          {
+            foreignKeyName: "pacientes_clinica_id_fkey"
+            columns: ["clinica_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
+      videos: {
+        Row: {
+          arquivo_url: string | null
+          clinica_id: string
+          created_at: string
+          id: string
+          paciente_id: string
+          titulo: string | null
+        }
+        Insert: {
+          arquivo_url?: string | null
+          clinica_id: string
+          created_at?: string
+          id?: string
+          paciente_id: string
+          titulo?: string | null
+        }
+        Update: {
+          arquivo_url?: string | null
+          clinica_id?: string
+          created_at?: string
+          id?: string
+          paciente_id?: string
+          titulo?: string | null
+        }
+        Relationships: [
+          {
+            foreignKeyName: "videos_clinica_id_fkey"
+            columns: ["clinica_id"]
+            isOneToOne: false
+            referencedRelation: "clinicas"
+            referencedColumns: ["id"]
+          },
+          {
+            foreignKeyName: "videos_paciente_id_fkey"
+            columns: ["paciente_id"]
+            isOneToOne: false
+            referencedRelation: "pacientes"
+            referencedColumns: ["id"]
+          },
+        ]
+      }
     }
     Views: {
       [_ in never]: never

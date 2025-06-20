@@ -1,6 +1,7 @@
 
 import React, { useState, useEffect } from 'react';
-import { Building2, Users, Heart, Plus, Trash2 } from 'lucide-react';
+import { useNavigate } from 'react-router-dom';
+import { Building2, Users, Heart, Plus, Trash2, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -24,6 +25,7 @@ const AdminDashboard = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
+  const navigate = useNavigate();
 
   const fetchClinicas = async () => {
     try {
@@ -69,6 +71,10 @@ const AdminDashboard = () => {
         variant: "destructive",
       });
     }
+  };
+
+  const handleAccessPacientes = (clinicaId: string) => {
+    navigate(`/admin/clinica/${clinicaId}/pacientes`);
   };
 
   useEffect(() => {
@@ -192,35 +198,45 @@ const AdminDashboard = () => {
                       <TableCell>{clinica.telefone}</TableCell>
                       <TableCell>{clinica.email}</TableCell>
                       <TableCell className="text-center">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="bg-red-500 hover:bg-red-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir a clínica "{clinica.nome}"? 
-                                Essa ação não poderá ser desfeita.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeleteClinica(clinica.id, clinica.nome)}
+                        <div className="flex justify-center space-x-2">
+                          <Button
+                            onClick={() => handleAccessPacientes(clinica.id)}
+                            size="sm"
+                            className="bg-cinebaby-turquoise hover:bg-cinebaby-turquoise/90"
+                          >
+                            <Eye className="w-4 h-4 mr-1" />
+                            Acessar pacientes
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
                                 className="bg-red-500 hover:bg-red-600"
                               >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir a clínica "{clinica.nome}"? 
+                                  Essa ação não poderá ser desfeita.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeleteClinica(clinica.id, clinica.nome)}
+                                  className="bg-red-500 hover:bg-red-600"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
