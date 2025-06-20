@@ -65,7 +65,7 @@ const PrintCard = () => {
 
   return (
     <div className="min-h-screen bg-white p-8 print:p-0">
-      <style jsx>{`
+      <style>{`
         @media print {
           body { margin: 0; }
           .no-print { display: none; }
