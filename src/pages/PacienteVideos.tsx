@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useParams, useNavigate } from 'react-router-dom';
-import { ArrowLeft, Upload, Trash2, QrCode, Printer, Play } from 'lucide-react';
+import { ArrowLeft, Upload, Trash2, QrCode, Printer, Play, LogOut } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -37,7 +37,7 @@ const PacienteVideos = () => {
   const { pacienteId } = useParams<{ pacienteId: string }>();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const { isAdmin, clinicaData } = useAuth();
+  const { isAdmin, clinicaData, logout } = useAuth();
   
   const [paciente, setPaciente] = useState<Paciente | null>(null);
   const [clinica, setClinica] = useState<Clinica | null>(null);
@@ -243,6 +243,17 @@ const PacienteVideos = () => {
     }
   };
 
+  const handleLogout = () => {
+    // Só executa logout se for uma clínica realmente logada
+    // Admin não deve fazer logout aqui
+    if (!isAdmin && clinicaData) {
+      logout();
+    } else if (isAdmin) {
+      // Se é admin, apenas navega de volta
+      handleGoBack();
+    }
+  };
+
   const handlePrintCard = () => {
     const printWindow = window.open(`/print-card/${pacienteId}`, '_blank');
     if (printWindow) {
@@ -276,14 +287,27 @@ const PacienteVideos = () => {
     <div className="min-h-screen bg-gradient-to-br from-cinebaby-purple/5 via-white to-cinebaby-turquoise/5">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <Button
-            onClick={handleGoBack}
-            variant="outline"
-            className="mb-4"
-          >
-            <ArrowLeft className="w-4 h-4 mr-2" />
-            Voltar
-          </Button>
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              onClick={handleGoBack}
+              variant="outline"
+            >
+              <ArrowLeft className="w-4 h-4 mr-2" />
+              Voltar
+            </Button>
+            
+            {/* Só mostra botão Sair se for clínica logada (não admin) */}
+            {!isAdmin && clinicaData && (
+              <Button
+                onClick={handleLogout}
+                variant="outline"
+                className="border-red-500 text-red-500 hover:bg-red-500 hover:text-white"
+              >
+                <LogOut className="w-4 h-4 mr-2" />
+                Sair
+              </Button>
+            )}
+          </div>
           
           <div className="flex items-center justify-between">
             <div className="flex items-center space-x-4">
@@ -294,7 +318,7 @@ const PacienteVideos = () => {
               />
               <div>
                 <h1 className="text-3xl font-bold text-cinebaby-purple">
-                  Vídeos de {paciente.nome}
+                  Vídeos de {paciente?.nome}
                 </h1>
                 <p className="text-gray-600">Gerencie os ultrassons da paciente</p>
               </div>
@@ -310,7 +334,7 @@ const PacienteVideos = () => {
                 </DialogTrigger>
                 <DialogContent>
                   <DialogHeader>
-                    <DialogTitle>QR Code para {paciente.nome}</DialogTitle>
+                    <DialogTitle>QR Code para {paciente?.nome}</DialogTitle>
                   </DialogHeader>
                   <div className="flex flex-col items-center space-y-4">
                     <QRCodeComponent value={publicUrl} size={200} />
