@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Users, Heart, Plus, Trash2, Eye, LogOut } from 'lucide-react';
+import { Building2, Users, Heart, Plus, Trash2, Eye, LogOut, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,6 +8,7 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ClinicaForm from '@/components/ClinicaForm';
+import EditClinicaForm from '@/components/EditClinicaForm';
 
 interface Clinica {
   id: string;
@@ -16,6 +17,7 @@ interface Clinica {
   endereco: string;
   telefone: string;
   email: string;
+  senha: string;
   created_at: string;
 }
 
@@ -23,6 +25,8 @@ const AdminDashboard = () => {
   const [clinicas, setClinicas] = useState<Clinica[]>([]);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [selectedClinica, setSelectedClinica] = useState<Clinica | null>(null);
   const { toast } = useToast();
   const navigate = useNavigate();
 
@@ -92,6 +96,16 @@ const AdminDashboard = () => {
 
   const handleAccessPacientes = (clinicaId: string) => {
     navigate(`/admin/clinica/${clinicaId}/pacientes`);
+  };
+
+  const handleEditClinica = (clinica: Clinica) => {
+    setSelectedClinica(clinica);
+    setIsEditFormOpen(true);
+  };
+
+  const handleEditSuccess = () => {
+    fetchClinicas();
+    setSelectedClinica(null);
   };
 
   useEffect(() => {
@@ -234,6 +248,14 @@ const AdminDashboard = () => {
                             <Eye className="w-4 h-4 mr-1" />
                             Acessar pacientes
                           </Button>
+                          <Button
+                            onClick={() => handleEditClinica(clinica)}
+                            size="sm"
+                            variant="outline"
+                            className="border-cinebaby-purple text-cinebaby-purple hover:bg-cinebaby-purple hover:text-white"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
                           <AlertDialog>
                             <AlertDialogTrigger asChild>
                               <Button
@@ -278,6 +300,13 @@ const AdminDashboard = () => {
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
         onSuccess={fetchClinicas}
+      />
+
+      <EditClinicaForm
+        isOpen={isEditFormOpen}
+        onClose={() => setIsEditFormOpen(false)}
+        onSuccess={handleEditSuccess}
+        clinica={selectedClinica}
       />
     </div>
   );
