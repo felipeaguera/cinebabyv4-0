@@ -46,6 +46,19 @@ const PacienteVideos = () => {
   const [isUploading, setIsUploading] = useState(false);
   const [uploadFile, setUploadFile] = useState<File | null>(null);
   const [videoTitle, setVideoTitle] = useState('');
+  const [isRealAdmin, setIsRealAdmin] = useState(false);
+
+  // Verificar se é realmente admin logado
+  const checkIfRealAdmin = async () => {
+    try {
+      const { data: { session } } = await supabase.auth.getSession();
+      if (session?.user?.email === 'admin@cinebaby.online') {
+        setIsRealAdmin(true);
+      }
+    } catch (error) {
+      console.error('Erro ao verificar admin:', error);
+    }
+  };
 
   const fetchPacienteData = async () => {
     if (!pacienteId) return;
@@ -230,7 +243,7 @@ const PacienteVideos = () => {
   };
 
   const handleGoBack = () => {
-    if (isAdmin) {
+    if (isAdmin || isRealAdmin) {
       // Se é admin, volta para a página de pacientes da clínica específica
       if (paciente?.clinica_id) {
         navigate(`/admin/clinica/${paciente.clinica_id}/pacientes`);
@@ -244,12 +257,17 @@ const PacienteVideos = () => {
   };
 
   const handleLogout = () => {
+    // Se for admin real (logado), apenas navega de volta sem fazer logout
+    if (isRealAdmin) {
+      handleGoBack();
+      return;
+    }
+    
     // Só executa logout se for uma clínica realmente logada
-    // Admin não deve fazer logout aqui
-    if (!isAdmin && clinicaData) {
+    if (!isAdmin && !isRealAdmin && clinicaData) {
       logout();
-    } else if (isAdmin) {
-      // Se é admin, apenas navega de volta
+    } else {
+      // Fallback para navegação
       handleGoBack();
     }
   };
@@ -263,6 +281,7 @@ const PacienteVideos = () => {
 
   useEffect(() => {
     fetchPacienteData();
+    checkIfRealAdmin();
   }, [pacienteId]);
 
   if (isLoading) {
@@ -296,8 +315,8 @@ const PacienteVideos = () => {
               Voltar
             </Button>
             
-            {/* Só mostra botão Sair se for clínica logada (não admin) */}
-            {!isAdmin && clinicaData && (
+            {/* Só mostra botão Sair se NÃO for admin real */}
+            {!isRealAdmin && !isAdmin && clinicaData && (
               <Button
                 onClick={handleLogout}
                 variant="outline"
