@@ -1,6 +1,7 @@
+
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Building2, Users, Heart, Plus, Trash2, Eye, LogOut } from 'lucide-react';
+import { Building2, Users, Heart, Plus, Trash2, Eye } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from '@/components/ui/table';
@@ -8,7 +9,6 @@ import { AlertDialog, AlertDialogAction, AlertDialogCancel, AlertDialogContent, 
 import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import ClinicaForm from '@/components/ClinicaForm';
-import { useAuth } from '@/hooks/useAuth';
 
 interface Clinica {
   id: string;
@@ -26,7 +26,6 @@ const AdminDashboard = () => {
   const [isFormOpen, setIsFormOpen] = useState(false);
   const { toast } = useToast();
   const navigate = useNavigate();
-  const { logout } = useAuth();
 
   const fetchClinicas = async () => {
     try {
@@ -86,28 +85,18 @@ const AdminDashboard = () => {
     <div className="min-h-screen bg-gradient-to-br from-cinebaby-purple/5 via-white to-cinebaby-turquoise/5">
       <div className="container mx-auto px-4 py-8">
         <div className="mb-8">
-          <div className="flex items-center justify-between mb-4">
-            <div className="flex items-center space-x-4">
-              <img 
-                src="/lovable-uploads/11c646c5-83c3-4ae9-b5ca-83145f51532d.png" 
-                alt="CineBaby Logo" 
-                className="h-12 w-auto object-contain"
-              />
-              <div>
-                <h1 className="text-3xl font-bold text-cinebaby-purple">
-                  Painel Administrativo
-                </h1>
-                <p className="text-gray-600">Gerencie as clínicas da plataforma CineBaby</p>
-              </div>
+          <div className="flex items-center space-x-4 mb-4">
+            <img 
+              src="/lovable-uploads/11c646c5-83c3-4ae9-b5ca-83145f51532d.png" 
+              alt="CineBaby Logo" 
+              className="h-12 w-auto object-contain"
+            />
+            <div>
+              <h1 className="text-3xl font-bold text-cinebaby-purple">
+                Painel Administrativo
+              </h1>
+              <p className="text-gray-600">Gerencie as clínicas da plataforma CineBaby</p>
             </div>
-            <Button
-              onClick={logout}
-              variant="outline"
-              className="flex items-center space-x-2 border-cinebaby-purple text-cinebaby-purple hover:bg-cinebaby-purple hover:text-white"
-            >
-              <LogOut className="w-4 h-4" />
-              <span>Sair</span>
-            </Button>
           </div>
         </div>
 
