@@ -133,6 +133,10 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
     }
   };
 
+  const handlePacienteClick = (pacienteId: string) => {
+    navigate(`/paciente/${pacienteId}/videos`);
+  };
+
   useEffect(() => {
     fetchPacientes();
   }, [currentClinicaId]);
@@ -274,7 +278,15 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
                 <TableBody>
                   {filteredPacientes.map((paciente) => (
                     <TableRow key={paciente.id}>
-                      <TableCell className="font-medium">{paciente.nome}</TableCell>
+                      <TableCell className="font-medium">
+                        <Button
+                          variant="link"
+                          className="p-0 h-auto font-medium text-cinebaby-purple hover:text-cinebaby-purple/80"
+                          onClick={() => handlePacienteClick(paciente.id)}
+                        >
+                          {paciente.nome}
+                        </Button>
+                      </TableCell>
                       <TableCell>{paciente.telefone}</TableCell>
                       <TableCell>
                         {new Date(paciente.created_at).toLocaleDateString('pt-BR')}
