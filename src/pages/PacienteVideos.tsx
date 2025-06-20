@@ -253,6 +253,11 @@ const PacienteVideos = () => {
     const fromAdmin = sessionStorage.getItem('fromAdmin');
     const adminClinicaId = sessionStorage.getItem('adminClinicaId');
     
+    console.log('handleGoBack - fromAdmin:', fromAdmin);
+    console.log('handleGoBack - adminClinicaId:', adminClinicaId);
+    console.log('handleGoBack - isAdmin:', isAdmin);
+    console.log('handleGoBack - isRealAdmin:', isRealAdmin);
+    
     if (fromAdmin === 'true' && (isAdmin || isRealAdmin)) {
       // Se veio do admin, volta para a lista de pacientes da clínica específica
       if (adminClinicaId) {
@@ -267,6 +272,7 @@ const PacienteVideos = () => {
       }
     } else {
       // Se é usuário da clínica, volta para o dashboard da clínica
+      console.log('Clínica voltando para dashboard');
       navigate('/clinica/dashboard');
     }
   };
