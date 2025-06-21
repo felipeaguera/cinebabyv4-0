@@ -255,13 +255,12 @@ const PacienteVideos = () => {
     
     console.log('handleGoBack - fromAdmin:', fromAdmin);
     console.log('handleGoBack - adminClinicaId:', adminClinicaId);
-    console.log('handleGoBack - isAdmin:', isAdmin);
-    console.log('handleGoBack - isRealAdmin:', isRealAdmin);
+    console.log('handleGoBack - paciente?.clinica_id:', paciente?.clinica_id);
     
-    if (fromAdmin === 'true' && (isAdmin || isRealAdmin)) {
-      // Se veio do admin, volta para a lista de pacientes da clínica específica
+    // Se veio do admin, sempre volta para a lista de pacientes da clínica
+    if (fromAdmin === 'true') {
       if (adminClinicaId) {
-        console.log('Admin navegando de volta para clínica:', adminClinicaId);
+        console.log('Admin navegando de volta para clínica via sessionStorage:', adminClinicaId);
         navigate(`/admin/clinica/${adminClinicaId}/pacientes`);
       } else if (paciente?.clinica_id) {
         console.log('Admin navegando de volta para clínica via paciente:', paciente.clinica_id);
