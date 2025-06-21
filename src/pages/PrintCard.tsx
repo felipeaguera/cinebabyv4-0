@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Heart } from 'lucide-react';
@@ -76,7 +75,7 @@ const PrintCard = () => {
           body { margin: 0; }
           .no-print { display: none; }
           .logo-cinebaby {
-            height: 120px;
+            height: 160px;
           }
         }
         
