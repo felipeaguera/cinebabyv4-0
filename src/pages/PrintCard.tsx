@@ -75,6 +75,9 @@ const PrintCard = () => {
         @media print {
           body { margin: 0; }
           .no-print { display: none; }
+          .logo-cinebaby {
+            height: 120px;
+          }
         }
         
         @page {
@@ -89,7 +92,7 @@ const PrintCard = () => {
           <img 
             src="/lovable-uploads/11c646c5-83c3-4ae9-b5ca-83145f51532d.png" 
             alt="CineBaby Logo" 
-            className="h-20 w-auto object-contain mx-auto"
+            className="h-20 w-auto object-contain mx-auto logo-cinebaby"
           />
         </div>
 
