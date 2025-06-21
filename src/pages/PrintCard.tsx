@@ -42,12 +42,18 @@ const PrintCard = () => {
     }
   };
 
+  const handlePrint = () => {
+    setTimeout(() => {
+      window.print();
+    }, 500); // Espera meio segundo para o QR aparecer antes de imprimir
+  };
+
   useEffect(() => {
     fetchData();
     
     // Auto print quando a página carregar
     const timer = setTimeout(() => {
-      window.print();
+      handlePrint();
     }, 1000);
 
     return () => clearTimeout(timer);
