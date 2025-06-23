@@ -107,6 +107,17 @@ const PacienteVideos = () => {
   const handleFileUpload = async () => {
     if (!uploadFile || !paciente) return;
 
+    // Validar tamanho do arquivo (500MB = 500 * 1024 * 1024 bytes)
+    const maxSize = 500 * 1024 * 1024; // 500MB
+    if (uploadFile.size > maxSize) {
+      toast({
+        title: "Arquivo muito grande",
+        description: `O arquivo deve ter no máximo 500MB. Arquivo atual: ${(uploadFile.size / 1024 / 1024).toFixed(2)}MB`,
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsUploading(true);
     try {
       console.log('Iniciando upload do arquivo:', uploadFile.name);
@@ -184,7 +195,7 @@ const PacienteVideos = () => {
         if (errorMsg.includes('bucket')) {
           errorMessage = "Erro no armazenamento. Verifique se o bucket existe.";
         } else if (errorMsg.includes('File size')) {
-          errorMessage = "Arquivo muito grande. Tente um arquivo menor.";
+          errorMessage = "Arquivo muito grande. Limite máximo: 500MB.";
         } else if (errorMsg.includes('upload')) {
           errorMessage = `Erro no upload: ${errorMsg}`;
         } else if (errorMsg.includes('banco')) {
@@ -418,7 +429,7 @@ const PacienteVideos = () => {
                 </div>
                 
                 <div>
-                  <Label htmlFor="video">Arquivo de Vídeo</Label>
+                  <Label htmlFor="video">Arquivo de Vídeo (máximo 500MB)</Label>
                   <Input
                     id="video"
                     type="file"
