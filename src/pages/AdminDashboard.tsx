@@ -77,12 +77,32 @@ const AdminDashboard = () => {
 
   const fetchTotalPacientes = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('Buscando total de pacientes...');
+      
+      // Primeira tentativa: contagem otimizada
+      const { count, error: countError } = await supabase
         .from('pacientes')
-        .select('*');
+        .select('*', { count: 'exact', head: true });
 
-      if (error) throw error;
-      setTotalPacientes(data?.length || 0);
+      if (countError) {
+        console.error('Erro na contagem otimizada de pacientes:', countError);
+        
+        // Segunda tentativa: buscar todos os registros
+        const { data, error: dataError } = await supabase
+          .from('pacientes')
+          .select('id');
+
+        if (dataError) {
+          console.error('Erro ao buscar pacientes:', dataError);
+          throw dataError;
+        }
+        
+        console.log('Pacientes encontrados (método alternativo):', data?.length || 0);
+        setTotalPacientes(data?.length || 0);
+      } else {
+        console.log('Total de pacientes (contagem otimizada):', count || 0);
+        setTotalPacientes(count || 0);
+      }
     } catch (error) {
       console.error('Erro ao buscar total de pacientes:', error);
       setTotalPacientes(0);
@@ -91,12 +111,32 @@ const AdminDashboard = () => {
 
   const fetchTotalVideos = async () => {
     try {
-      const { data, error } = await supabase
+      console.log('Buscando total de vídeos...');
+      
+      // Primeira tentativa: contagem otimizada
+      const { count, error: countError } = await supabase
         .from('videos')
-        .select('*');
+        .select('*', { count: 'exact', head: true });
 
-      if (error) throw error;
-      setTotalVideos(data?.length || 0);
+      if (countError) {
+        console.error('Erro na contagem otimizada de vídeos:', countError);
+        
+        // Segunda tentativa: buscar todos os registros
+        const { data, error: dataError } = await supabase
+          .from('videos')
+          .select('id');
+
+        if (dataError) {
+          console.error('Erro ao buscar vídeos:', dataError);
+          throw dataError;
+        }
+        
+        console.log('Vídeos encontrados (método alternativo):', data?.length || 0);
+        setTotalVideos(data?.length || 0);
+      } else {
+        console.log('Total de vídeos (contagem otimizada):', count || 0);
+        setTotalVideos(count || 0);
+      }
     } catch (error) {
       console.error('Erro ao buscar total de vídeos:', error);
       setTotalVideos(0);
