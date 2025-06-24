@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Users, Plus, Trash2, Search, LogOut, ArrowLeft } from 'lucide-react';
+import { Users, Plus, Trash2, Search, LogOut, ArrowLeft, Edit } from 'lucide-react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Input } from '@/components/ui/input';
@@ -10,6 +10,7 @@ import { supabase } from '@/integrations/supabase/client';
 import { useToast } from '@/hooks/use-toast';
 import { useAuth } from '@/hooks/useAuth';
 import PacienteForm from '@/components/PacienteForm';
+import EditPacienteForm from '@/components/EditPacienteForm';
 
 interface Paciente {
   id: string;
@@ -29,6 +30,8 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
   const [searchTerm, setSearchTerm] = useState('');
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
+  const [isEditFormOpen, setIsEditFormOpen] = useState(false);
+  const [selectedPaciente, setSelectedPaciente] = useState<Paciente | null>(null);
   const [clinicaInfo, setClinicaInfo] = useState<any>(null);
   const { toast } = useToast();
   const { isAdmin, clinicaData } = useAuth();
@@ -129,6 +132,11 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
       );
       setFilteredPacientes(filtered);
     }
+  };
+
+  const handleEditPaciente = (paciente: Paciente) => {
+    setSelectedPaciente(paciente);
+    setIsEditFormOpen(true);
   };
 
   const handleDeletePaciente = async (id: string, nome: string) => {
@@ -339,35 +347,45 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
                         {new Date(paciente.created_at).toLocaleDateString('pt-BR')}
                       </TableCell>
                       <TableCell className="text-center">
-                        <AlertDialog>
-                          <AlertDialogTrigger asChild>
-                            <Button
-                              variant="destructive"
-                              size="sm"
-                              className="bg-red-500 hover:bg-red-600"
-                            >
-                              <Trash2 className="w-4 h-4" />
-                            </Button>
-                          </AlertDialogTrigger>
-                          <AlertDialogContent>
-                            <AlertDialogHeader>
-                              <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
-                              <AlertDialogDescription>
-                                Tem certeza que deseja excluir a paciente "{paciente.nome}"? 
-                                Essa ação não poderá ser desfeita e todos os vídeos relacionados também serão excluídos.
-                              </AlertDialogDescription>
-                            </AlertDialogHeader>
-                            <AlertDialogFooter>
-                              <AlertDialogCancel>Cancelar</AlertDialogCancel>
-                              <AlertDialogAction
-                                onClick={() => handleDeletePaciente(paciente.id, paciente.nome)}
+                        <div className="flex items-center justify-center gap-2">
+                          <Button
+                            onClick={() => handleEditPaciente(paciente)}
+                            variant="outline"
+                            size="sm"
+                            className="border-cinebaby-turquoise text-cinebaby-turquoise hover:bg-cinebaby-turquoise hover:text-white"
+                          >
+                            <Edit className="w-4 h-4" />
+                          </Button>
+                          <AlertDialog>
+                            <AlertDialogTrigger asChild>
+                              <Button
+                                variant="destructive"
+                                size="sm"
                                 className="bg-red-500 hover:bg-red-600"
                               >
-                                Excluir
-                              </AlertDialogAction>
-                            </AlertDialogFooter>
-                          </AlertDialogContent>
-                        </AlertDialog>
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </AlertDialogTrigger>
+                            <AlertDialogContent>
+                              <AlertDialogHeader>
+                                <AlertDialogTitle>Confirmar Exclusão</AlertDialogTitle>
+                                <AlertDialogDescription>
+                                  Tem certeza que deseja excluir a paciente "{paciente.nome}"? 
+                                  Essa ação não poderá ser desfeita e todos os vídeos relacionados também serão excluídos.
+                                </AlertDialogDescription>
+                              </AlertDialogHeader>
+                              <AlertDialogFooter>
+                                <AlertDialogCancel>Cancelar</AlertDialogCancel>
+                                <AlertDialogAction
+                                  onClick={() => handleDeletePaciente(paciente.id, paciente.nome)}
+                                  className="bg-red-500 hover:bg-red-600"
+                                >
+                                  Excluir
+                                </AlertDialogAction>
+                              </AlertDialogFooter>
+                            </AlertDialogContent>
+                          </AlertDialog>
+                        </div>
                       </TableCell>
                     </TableRow>
                   ))}
@@ -383,6 +401,13 @@ const ClinicaDashboard = ({ clinicaId }: ClinicaDashboardProps) => {
         onClose={() => setIsFormOpen(false)}
         onSuccess={fetchPacientes}
         clinicaId={currentClinicaId}
+      />
+
+      <EditPacienteForm
+        isOpen={isEditFormOpen}
+        onClose={() => setIsEditFormOpen(false)}
+        onSuccess={fetchPacientes}
+        paciente={selectedPaciente}
       />
     </div>
   );
