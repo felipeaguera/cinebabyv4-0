@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
 import { Building2, Users, Heart, Plus, Trash2, Eye, LogOut, Edit } from 'lucide-react';
@@ -24,6 +23,8 @@ interface Clinica {
 
 const AdminDashboard = () => {
   const [clinicas, setClinicas] = useState<Clinica[]>([]);
+  const [totalPacientes, setTotalPacientes] = useState(0);
+  const [totalVideos, setTotalVideos] = useState(0);
   const [isLoading, setIsLoading] = useState(true);
   const [isFormOpen, setIsFormOpen] = useState(false);
   const [isEditFormOpen, setIsEditFormOpen] = useState(false);
@@ -71,9 +72,45 @@ const AdminDashboard = () => {
         description: "Erro ao carregar clínicas.",
         variant: "destructive",
       });
-    } finally {
-      setIsLoading(false);
     }
+  };
+
+  const fetchTotalPacientes = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('pacientes')
+        .select('*');
+
+      if (error) throw error;
+      setTotalPacientes(data?.length || 0);
+    } catch (error) {
+      console.error('Erro ao buscar total de pacientes:', error);
+      setTotalPacientes(0);
+    }
+  };
+
+  const fetchTotalVideos = async () => {
+    try {
+      const { data, error } = await supabase
+        .from('videos')
+        .select('*');
+
+      if (error) throw error;
+      setTotalVideos(data?.length || 0);
+    } catch (error) {
+      console.error('Erro ao buscar total de vídeos:', error);
+      setTotalVideos(0);
+    }
+  };
+
+  const fetchAllData = async () => {
+    setIsLoading(true);
+    await Promise.all([
+      fetchClinicas(),
+      fetchTotalPacientes(),
+      fetchTotalVideos()
+    ]);
+    setIsLoading(false);
   };
 
   const handleDeleteClinica = async (id: string, nome: string) => {
@@ -90,7 +127,7 @@ const AdminDashboard = () => {
         description: `Clínica "${nome}" excluída com sucesso.`,
       });
 
-      fetchClinicas();
+      fetchAllData();
     } catch (error) {
       console.error('Erro ao excluir clínica:', error);
       toast({
@@ -114,12 +151,12 @@ const AdminDashboard = () => {
   };
 
   const handleEditSuccess = () => {
-    fetchClinicas();
+    fetchAllData();
     setSelectedClinica(null);
   };
 
   useEffect(() => {
-    fetchClinicas();
+    fetchAllData();
   }, []);
 
   return (
@@ -175,7 +212,7 @@ const AdminDashboard = () => {
               <Users className="h-4 w-4 text-cinebaby-turquoise" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-cinebaby-turquoise">0</div>
+              <div className="text-2xl font-bold text-cinebaby-turquoise">{totalPacientes}</div>
               <p className="text-xs text-gray-500">
                 Gestantes cadastradas no sistema
               </p>
@@ -190,7 +227,7 @@ const AdminDashboard = () => {
               <Heart className="h-4 w-4 text-pink-400" />
             </CardHeader>
             <CardContent>
-              <div className="text-2xl font-bold text-pink-400">0</div>
+              <div className="text-2xl font-bold text-pink-400">{totalVideos}</div>
               <p className="text-xs text-gray-500">
                 Vídeos de ultrassom compartilhados
               </p>
@@ -309,7 +346,7 @@ const AdminDashboard = () => {
       <ClinicaForm 
         isOpen={isFormOpen}
         onClose={() => setIsFormOpen(false)}
-        onSuccess={fetchClinicas}
+        onSuccess={fetchAllData}
       />
 
       <EditClinicaForm
