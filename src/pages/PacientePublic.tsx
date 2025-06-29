@@ -1,4 +1,3 @@
-
 import React, { useState, useEffect } from 'react';
 import { useParams } from 'react-router-dom';
 import { Play, Heart, FileText } from 'lucide-react';
@@ -272,8 +271,11 @@ const PacientePublic = () => {
           </div>
         )}
 
-        <div className="text-center mt-12 text-gray-500">
-          <p>Powered by CineBaby - Momentos que ficam para sempre</p>
+        <div className="text-center mt-8 space-y-2">
+          <p className="text-sm text-gray-400">
+            O vídeo permanece disponível por 9 meses para que você possa reviver esse momento com carinho.
+          </p>
+          <p className="text-gray-500">Powered by CineBaby - Momentos que ficam para sempre</p>
         </div>
       </div>
     </div>
